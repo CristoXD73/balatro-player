@@ -93,7 +93,8 @@ def _keep_plans(hand: Sequence[Card], top_plays: List[Play]) -> List[Tuple[str, 
     suits = Counter(c.suit for c in hand if c.suit and not c.is_stone)
     for suit, cnt in suits.most_common(2):
         if cnt >= 3:
-            plans.append((f"chase {suit} flush", {i for i, c in enumerate(hand) if c.has_suit(suit)}))
+            name = {"H": "hearts", "D": "diamonds", "C": "clubs", "S": "spades"}[suit]
+            plans.append((f"chase {name} flush", {i for i, c in enumerate(hand) if c.has_suit(suit)}))
     values = sorted({c.rank_value for c in hand if c.rank_value})
     best_window: Set[int] = set()
     for lo in range(1, 11):

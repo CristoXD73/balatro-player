@@ -60,10 +60,22 @@ def cmd_doctor(args) -> int:
 def cmd_play(args) -> int:
     from .agent import Agent
     from .client import BalatroClient
+    from .journal import Journal
     from .logbook import Logbook
     from .memory import Memory
+    from .playlog import PlayLog
+    from .recording import Recorder
     from .strategy.strategist import Strategist
     from .value_model import ValueModel
+
+    recorder = None
+    if args.record:
+        recorder = Recorder(args.recordings, speedup=args.speedup)
+        if not recorder.available:
+            print("! Recorder not built; run scripts/setup_mac.sh (or swiftc -parse-as-library -O "
+                  "tools/recorder.swift -o tools/bin/balatro-recorder). Playing without recording.", file=sys.stderr)
+            recorder = None
+    journal = None if args.no_journal else Journal(args.journal)
 
     client = BalatroClient(args.host, args.port)
     client.wait_until_ready()
@@ -72,7 +84,18 @@ def cmd_play(args) -> int:
     memory = Memory(logbook)
     vm = ValueModel.load(args.value_model)
     strategist = Strategist(logbook, llm=llm, memory=memory if llm else None, value_model=vm, samples=args.samples)
-    agent = Agent(client, strategist, logbook, memory, llm, deck=args.deck, stake=args.stake, samples=args.samples)
+    playlog = None
+    if not args.no_playlog:
+        recap = None
+        if llm:
+            from .strategy import prompts
+
+            def recap(summary):
+                data, _ = llm.chat_json(prompts.ANTE_SYSTEM, prompts.ante_prompt(summary))
+                return str(data.get("recap") or "") if isinstance(data, dict) else ""
+        playlog = PlayLog(args.playlog, speedup=args.speedup if recorder else 0, recap=recap)
+    agent = Agent(client, strategist, logbook, memory, llm, deck=args.deck, stake=args.stake, samples=args.samples,
+                  recorder=recorder, journal=journal, playlog=playlog)
 
     seeds: List[Optional[str]] = [None] * args.runs
     if args.seeds:
@@ -82,7 +105,8 @@ def cmd_play(args) -> int:
     for i, seed in enumerate(seeds, 1):
         s = agent.play_run(seed)
         result = "WON" if s["won"] else f"lost at ante {s['ante']} to {s['lost_to'] or '?'}"
-        print(f"run {i}/{args.runs} seed {s['seed']}: {result} ({s['minutes']} min) jokers {', '.join(s['jokers'])}",
+        video = f" video {s['video']}" if s.get("video") else ""
+        print(f"run {i}/{args.runs} seed {s['seed']}: {result} ({s['minutes']} min) jokers {', '.join(s['jokers'])}{video}",
               flush=True)
         if args.train_every and i % args.train_every == 0:
             _train(args.db, args.value_model, quiet=True)
@@ -225,6 +249,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     play.add_argument("--no-llm", action="store_true", help="heuristics only")
     play.add_argument("--samples", type=int, default=24, help="Monte Carlo samples per decision")
     play.add_argument("--train-every", type=int, default=25, help="retrain the value model every N runs (0 = never)")
+    play.add_argument("--record", action="store_true", help="screen-record every run to --recordings")
+    play.add_argument("--recordings", default="recordings", help="folder for run videos")
+    play.add_argument("--speedup", type=float, default=0, help="also save an N-times-faster timelapse of each run")
+    play.add_argument("--journal", default="journal.txt", help="human-readable diary of the bot's learning")
+    play.add_argument("--no-journal", action="store_true")
+    play.add_argument("--playlog", default="playlog", help="folder for per-run play-by-play logs (JSONL, for video editing)")
+    play.add_argument("--no-playlog", action="store_true")
     sub.add_parser("report")
     sub.add_parser("train")
     exp = sub.add_parser("export-finetune")

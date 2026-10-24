@@ -294,7 +294,7 @@ class FakeLLM:
     def chat_json(self, system, user):
         self.calls += 1
         if "SHOP DECISION" in user:
-            keys = [line.split()[2].rstrip(":") for line in user.splitlines() if line.startswith("  buy_card j_")]
+            keys = [line.split()[1].rstrip(":") for line in user.splitlines() if line.startswith("  buy_card j_")]
             plan = [{"do": "buy_card", "key": keys[0]}] if keys else []
             return {"plan": plan, "why": "take the best joker"}, '{"plan": []}'
         if "BLIND DECISION" in user:
@@ -302,6 +302,12 @@ class FakeLLM:
         if "BOOSTER PACK" in user:
             return {"do": "pick", "index": 0, "why": "joker"}, '{"do": "pick", "index": 0}'
         if "RUN SUMMARY" in user:
-            return {"lessons": [{"text": "Buy a pair-focused joker early and level Pair with Mercury.",
+            return {"diary": "I went all in on pairs again. Duo carried me early, but by the boss I had "
+                             "nothing that multiplied, and it showed. Next time I want an xMult joker by Ante 4.",
+                    "lessons": [{"text": "Buy a pair-focused joker early and level Pair with Mercury.",
                                  "tags": ["pair", "ante-early"]}]}, "{}"
+        if "ANTE SUMMARY" in user:
+            return {"recap": "Ante cleared, but that boss had me sweating. I need more multiplier, fast."}, "{}"
+        if "CHAPTER" in user:
+            return {"text": "Looking back, I stopped panic-rerolling and started saving for interest."}, "{}"
         return None, ""

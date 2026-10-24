@@ -69,13 +69,19 @@ uv pip install --python .venv/bin/python -e ".[mlx,dev]"
 say "Downloading $MODEL (one time, ~17 GB for the default model)"
 .venv/bin/python -c "from huggingface_hub import snapshot_download; snapshot_download('$MODEL')"
 
+say "Building the screen recorder"
+mkdir -p tools/bin
+swiftc -parse-as-library -O tools/recorder.swift -o tools/bin/balatro-recorder
+echo "   tools/bin/balatro-recorder (first recording asks for Screen Recording permission)"
+
 say "Running tests"
 .venv/bin/python -m pytest -q tests/test_engine.py tests/test_solver.py
 
 cat <<EOF
 
 Setup complete. To play:
-  ./scripts/start.sh            # starts the LLM server and Balatro, then plays
+  ./scripts/start.sh -n 20                        # starts the LLM server and Balatro, then plays
+  ./scripts/start.sh -n 20 --record --speedup 8   # same, filming every run (+ 8x timelapse)
 or step by step, in three terminals:
   .venv/bin/mlx_lm.server --model $MODEL --port 8080
   uvx balatrobot serve --fast

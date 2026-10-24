@@ -36,6 +36,7 @@ class Strategist:
         self.samples = samples
         self.plan: List[Dict[str, Any]] = []
         self.plan_from_llm = False
+        self.plan_why = ""
         self._planned = False
         self.lessons_used: List[int] = []
 
@@ -104,6 +105,7 @@ class Strategist:
         self.policy.new_shop()
         self.plan = []
         self.plan_from_llm = False
+        self.plan_why = ""
         self._planned = False
 
     def shop(self, view: GameView) -> Action:
@@ -119,6 +121,7 @@ class Strategist:
             step = self.plan.pop(0)
             a = self._resolve(view, step)
             if a is not None:
+                a.reason = self.plan_why or a.reason
                 self._record(view, "shop", a, "llm" if self.plan_from_llm else "heuristic", ev)
                 return a
         if self.plan_from_llm:
@@ -151,6 +154,7 @@ class Strategist:
             return
         self.plan = [s for s in steps if isinstance(s, dict) and s.get("do")][:8]
         self.plan_from_llm = True
+        self.plan_why = str(data.get("why") or "")[:300]
         self.logbook.decision(view.ante, view.round_num, "shop_plan", {"plan": self.plan, "why": data.get("why")},
                               "llm", self._features(view, ev), prompt, raw, self.lessons_used[-4:])
 

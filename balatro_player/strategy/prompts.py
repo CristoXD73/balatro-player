@@ -128,9 +128,36 @@ REFLECT_SYSTEM = """You are coaching a Balatro bot after a run. Find the decisio
 and turn them into short, general, actionable lessons for future runs. Reply with JSON only."""
 
 
-def reflect_prompt(summary: Dict[str, Any]) -> str:
+def reflect_prompt(summary: Dict[str, Any], run_number: int, past_lessons: List[str]) -> str:
+    past = "\n".join(f"  - {l}" for l in past_lessons[:8]) or "  (none yet)"
     return ("RUN SUMMARY\n" + json.dumps(summary, indent=1)[:6000] +
-            '\n\nReturn {"lessons": [{"text": "<one actionable sentence>", '
-            '"tags": ["<joker keys, hand types, ante-early|ante-mid|ante-late, deck, boss names>"]}]} '
-            "with 1-3 lessons. Prefer lessons about build direction, economy and joker choices. "
-            "Do not restate generic rules; say what to do differently.")
+            f"\n\nThis was run number {run_number}. Lessons you already had going in:\n{past}\n\n"
+            'Return {"diary": "<entry>", "lessons": [{"text": "<one actionable sentence>", '
+            '"tags": ["<joker keys, hand types, ante-early|ante-mid|ante-late, deck, boss names>"]}]}.\n'
+            "diary: 3-6 sentences in the first person, like a human player's notebook after a run. "
+            "Say what you were going for, the moment it turned, how it felt, and what you'll try next time. "
+            "Be specific (name jokers, antes, the boss) and honest about mistakes; mention it when you "
+            "followed or ignored an earlier lesson. Plain prose, no lists, no numbers in brackets.\n"
+            "lessons: 1-3 new ones about build direction, economy and joker choices. Don't repeat the "
+            "lessons you already had or restate generic rules; say what to do differently.")
+
+
+CHAPTER_SYSTEM = """You are a Balatro player writing a short retrospective in your journal. Write in the
+first person, warm and honest, like a person looking back at how they've improved. Reply with JSON only."""
+
+
+def chapter_prompt(chapter: int, stats: Dict[str, Any], lessons: List[str]) -> str:
+    return (f"CHAPTER {chapter} STATS\n{json.dumps(stats, indent=1)}\n\nLessons you rely on most:\n" +
+            "\n".join(f"  - {l}" for l in lessons[:10]) +
+            '\n\nReturn {"text": "<2 short paragraphs: how your play has changed over these runs, what finally '
+            'clicked, what still beats you, and what you want to get better at next>"}.')
+
+
+ANTE_SYSTEM = """You are a Balatro player narrating your own run for a video, right after finishing an ante.
+Speak in the first person, present tense, short and punchy, with personality. Reply with JSON only."""
+
+
+def ante_prompt(summary: Dict[str, Any]) -> str:
+    return ("ANTE SUMMARY\n" + json.dumps(summary, indent=1)[:4000] +
+            '\n\nReturn {"recap": "<1-2 sentences of voice-over for this ante: what happened, how you felt '
+            '(follow the mood arc), and what you are worried or excited about next. No numbers in brackets.>"}')

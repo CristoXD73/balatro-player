@@ -6,3 +6,5 @@ __pycache__/
 data/
 logs/
 .DS_Store
+recordings/
+tools/bin/
