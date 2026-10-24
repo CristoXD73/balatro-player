@@ -17,6 +17,8 @@ cd "$(dirname "$0")/.."
 MODEL="${BALATRO_MODEL:-mlx-community/Qwen3-30B-A3B-4bit}"
 SPEED="${BALATRO_SPEED:-16}"
 mkdir -p data/logs
+# Mac App Store build: setup_appstore.sh writes the paths BalatroBot needs.
+[[ -f .appstore.env ]] && source .appstore.env
 pids=()
 cleanup() { for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done; }
 trap cleanup EXIT INT TERM
