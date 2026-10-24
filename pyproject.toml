@@ -1,0 +1,33 @@
+[project]
+name = "balatro-player"
+version = "0.1.0"
+description = "A local AI that plays Balatro: exact scoring engine + hand solver, local LLM strategist, and learning loops."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+# Apple silicon: local LLM server and value-model training.
+mlx = [
+    "mlx>=0.20",
+    "mlx-lm>=0.20",
+]
+dev = [
+    "pytest>=7",
+]
+
+[project.scripts]
+balatro-player = "balatro_player.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["balatro_player*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
